@@ -1,0 +1,54 @@
+---
+title: "Practical Machine Learning - Project"
+date: "Sunday, September 21, 2014"
+output: html_document
+---
+
+### Intuition and choice of the model
+The objective is to solve a classification problem. Since the predictors measure body movements we make the hypothesis that variable interactions plays an key role in determining the outcome. So the model will be based on a classification tree. Considering the low number of observations we choose random forest because they are efficient and relatively simple to use.  
+
+### Data loading and pre-processing
+We first loads the data into the har dataframe. The outcome (column classe) is turned into a factor. 
+```{r, message=FALSE}
+set.seed(0353);library(Hmisc);library(caret)
+har <- read.csv("pml-training.csv",as.is = TRUE); describe(har$classe)
+har$classe <- factor(har$classe)
+```
+We first remove the variables that are useless for the model, begining with the columns without values. 
+```{r}
+res0 <- sapply(har, function(x) sum(is.na(x))*100/dim(har)[1]); table(round(res0,1))
+```
+We see that 67 columns have more than 97% NAs. We Remove those columns from the dataset.
+```{r}
+har2 <- har[,names(res0[res0<97])]
+```
+Also the seven first column of the dataset are removed, they are not measurements and can not be used as predictors. And moreover they are synonym of the outcome and will disturb the results of the classification tree.
+```{r}
+har2 <- har2[,-(1:7)]
+```
+Then we discard columns with near zero variance.
+```{r}
+nzvres <- nearZeroVar(har2,saveMetrics = TRUE); har3 <- har2[,rownames(nzvres[!nzvres$nzv,])]
+```
+It remains `r dim(har3)[2]` variables in the dataset (that is to say `r dim(har3)[2]-1` predictors and the outcome) for`r dim(har3)[1]` observations.
+
+### Model training
+Fitting a Random forest can be computationally intensive. Fitting a random forest on the har3 dataset yields to a computation time of ca 1 hour on my machine.
+```{r}
+trainidx <- createDataPartition(har3$classe, p = 0.8,list=FALSE)
+training = har3[trainidx,]
+testing = har3[-trainidx,]
+fit <- train(classe~.,data=training, method="rf")
+```{r}
+fit
+```
+The accuracy is 99.0% so we expect an out of sample error of 1% or more.
+### Cross validation
+We display below the confusionMatrix between predicted outcomes and actual outcomes of the testing set.
+```{r}
+cm <- confusionMatrix(predict(fit,testing),testing$classe)
+cm$table
+cm$overall[1]
+```
+The out of sample error is then 0.6%. It is less than the expected 1%, which seems (too) good to be true. An explanation is that the data used to fit the model are obeservations from 5 individuals. Our training set is based on 80% of the data collected; inside that training set the random forests draws crossvalidation data to fit the model. By luck the tests data fits better than the crossvalidation sets extracted from the training set by the random forest algorithm.
+That might mean that our model is very good at predicting the class inside the six individuals that were chosen to generate the data. To validate the model we should get data measured on other individuals.
