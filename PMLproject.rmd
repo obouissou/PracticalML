@@ -41,7 +41,7 @@ testing = har3[-trainidx,]
 fit <- train(classe~.,data=training, method="rf")
 fit
 ```
-The accuracy is 99.0% so we expect an out of sample error of 1% or more.
+The accuracy is 100.0% so we expect a very low out of sample error.  
 ### Cross validation
 We display below the confusionMatrix between predicted outcomes and actual outcomes of the testing set.
 ```{r}
@@ -49,5 +49,5 @@ cm <- confusionMatrix(predict(fit,testing),testing$classe)
 cm$table
 cm$overall[1]
 ```
-The out of sample error is then 0.6%. It is less than the expected 1%, which seems (too) good to be true. An explanation is that the data used to fit the model are obeservations from 5 individuals. Our training set is based on 80% of the data collected; inside that training set the random forests draws crossvalidation data to fit the model. By luck the tests data fits better than the crossvalidation sets extracted from the training set by the random forest algorithm.
+The out of sample error is then 0.6% which is quite low. An explanation is that the data used to fit the model are observations from 5 individuals. Our training set is based on 80% of the data collected; inside that training set the random forests draws crossvalidation data to fit the model. By luck the tests data fits better than the crossvalidation sets extracted from the training set by the random forest algorithm.
 That might mean that our model is very good at predicting the class inside the six individuals that were chosen to generate the data. To validate the model we should get data measured on other individuals.
